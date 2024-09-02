@@ -38,6 +38,29 @@ func (r *Repository) NewSynonyms(ctx context.Context, word string, newSynonyms [
 	return nil
 }
 
+func (r *Repository) GetWordFromSynonym(ctx context.Context, synonym string) (string, error) {
+	col := r.db.Collection("synonyms")
+	filter := bson.M{"synonyms": synonym}
+
+	cur, err := col.Find(ctx, filter)
+	if err != nil {
+		return "", err
+	}
+
+	var word struct {
+		Word string `json:"word"`
+	}
+
+	for cur.Next(ctx) {
+		err := cur.Decode(&word)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return word.Word, nil
+}
+
 func (r *Repository) List(ctx context.Context, word string) {
 	col := r.db.Collection("synonyms")
 
