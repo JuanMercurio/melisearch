@@ -28,3 +28,6 @@ Si ya tenemos corriendo la base podemos correr el programa con `make run`
 | Row      | Document   |
 | Column   | Field      |
 
+# Notas
+- Para asegurar que no se repita "word" en MongoDB creamos un index `unique_word_index`
+

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,11 +19,11 @@ func NewRepository(db *mongo.Database) *Repository {
 	}
 }
 
-func (r *Repository) NewSynonyms(ctx context.Context, word string, newSynonyms []string) error {
+func (r *Repository) NewSynonyms(ctx context.Context, searchTerm string, newSynonyms []string) error {
 
 	col := r.db.Collection("synonyms")
 
-	filter := bson.M{"word": word}
+	filter := bson.M{"word": searchTerm}
 	update := bson.M{
 		"$addToSet": bson.M{"synonyms": bson.M{"$each": newSynonyms}},
 	}
@@ -61,7 +60,7 @@ func (r *Repository) GetWordFromSynonym(ctx context.Context, synonym string) (st
 	return word.Word, nil
 }
 
-func (r *Repository) List(ctx context.Context, word string) {
+func (r *Repository) List(ctx context.Context, word string) ([]string, error) {
 	col := r.db.Collection("synonyms")
 
 	filter := bson.M{"word": word}
@@ -76,7 +75,7 @@ func (r *Repository) List(ctx context.Context, word string) {
 		Synonyms []string `json:"synonyms"`
 	}
 
-	// esto solofunciona si tiene 1 doc de esa palabra
+	// esto solo funciona si tiene 1 doc de esa palabra
 	for cur.Next(ctx) {
 		err := cur.Decode(&synonyms)
 		if err != nil {
@@ -84,6 +83,5 @@ func (r *Repository) List(ctx context.Context, word string) {
 		}
 	}
 
-	fmt.Println(synonyms.Synonyms)
-
+	return synonyms.Synonyms, nil
 }

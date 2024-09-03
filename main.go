@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -31,6 +32,43 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_ = NewRepository(client.Database("testing"))
+	repo := NewRepository(client.Database("testing"))
+
+	router := gin.Default()
+	router.GET("/word", func(ctx *gin.Context) {
+		synonym := ctx.Query("synonym")
+		word, err := repo.GetWordFromSynonym(ctx, synonym)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		ctx.JSON(200, gin.H{"word": word})
+
+	})
+	router.GET("/synonyms/:word", func(ctx *gin.Context) {
+		word := ctx.Param("word")
+		synonyms, err := repo.List(ctx, word)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		ctx.JSON(200, gin.H{"synonyms": synonyms})
+	})
+
+	router.POST("/synonyms/:word", func(ctx *gin.Context) {
+		word := ctx.Param("word")
+		synonyms := ctx.QueryArray("synonyms")
+		if err := repo.NewSynonyms(ctx, word, synonyms); err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		ctx.JSON(200, gin.H{"status": "ok"})
+
+	})
+
+	router.Run(":8080")
 	return
 }
