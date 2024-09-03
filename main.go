@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,17 @@ func main() {
 
 	router.POST("/synonyms/:word", func(ctx *gin.Context) {
 		word := ctx.Param("word")
-		synonyms := ctx.QueryArray("synonyms")
+		synonyms := strings.Split(ctx.Query("synonyms"), ",")
+
+		for i, s := range synonyms {
+			synonyms[i] = strings.TrimSpace(s)
+		}
+		for i := len(synonyms) - 1; i >= 0; i-- {
+			if synonyms[i] == "" {
+				synonyms = append(synonyms[:i], synonyms[i+1:]...)
+			}
+		}
+
 		if err := repo.NewSynonyms(ctx, word, synonyms); err != nil {
 			ctx.JSON(500, gin.H{"error": err.Error()})
 			return
