@@ -36,6 +36,8 @@ func main() {
 	repo := NewRepository(client.Database("testing"))
 
 	router := gin.Default()
+
+	// /word?synonym=word tiene que devolver la palabra que tiene ese sinonimo
 	router.GET("/word", func(ctx *gin.Context) {
 		synonym := ctx.Query("synonym")
 		word, err := repo.GetWordFromSynonym(ctx, synonym)
@@ -47,6 +49,8 @@ func main() {
 		ctx.JSON(200, gin.H{"word": word})
 
 	})
+
+	// /synonyms/:word tiene que devolver los sinonimos de esa palabra
 	router.GET("/synonyms/:word", func(ctx *gin.Context) {
 		word := ctx.Param("word")
 		synonyms, err := repo.List(ctx, word)
@@ -58,9 +62,17 @@ func main() {
 		ctx.JSON(200, gin.H{"synonyms": synonyms})
 	})
 
+	// /synonyms/:word?synonyms=word1,word2,word3 tiene que agregar los sinonimos a la palabra
 	router.POST("/synonyms/:word", func(ctx *gin.Context) {
 		word := ctx.Param("word")
-		synonyms := strings.Split(ctx.Query("synonyms"), ",")
+
+		synonymsString := ctx.Query("synonyms")
+		if synonymsString == "" {
+			ctx.JSON(400, gin.H{"error": "synonyms query parameter is required"})
+			return
+		}
+
+		synonyms := strings.Split(synonymsString, ",")
 
 		for i, s := range synonyms {
 			synonyms[i] = strings.TrimSpace(s)
@@ -77,7 +89,6 @@ func main() {
 		}
 
 		ctx.JSON(200, gin.H{"status": "ok"})
-
 	})
 
 	router.Run(":8080")

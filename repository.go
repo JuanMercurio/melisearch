@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,47 +40,32 @@ func (r *Repository) GetWordFromSynonym(ctx context.Context, synonym string) (st
 	col := r.db.Collection("synonyms")
 	filter := bson.M{"synonyms": synonym}
 
-	cur, err := col.Find(ctx, filter)
-	if err != nil {
-		return "", err
-	}
-
-	var word struct {
+	var result struct {
 		Word string `json:"word"`
 	}
 
-	for cur.Next(ctx) {
-		err := cur.Decode(&word)
-		if err != nil {
-			return "", err
-		}
+	if err := col.FindOne(ctx, filter).Decode(&result); err != nil {
+		return "", err
 	}
 
-	return word.Word, nil
+	return result.Word, nil
 }
 
 func (r *Repository) List(ctx context.Context, word string) ([]string, error) {
 	col := r.db.Collection("synonyms")
 
 	filter := bson.M{"word": word}
+	onlySynonyms := bson.D{{Key: "synonyms", Value: 1}}
 
-	cur, err := col.Find(ctx, filter)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer cur.Close(ctx)
-
-	var synonyms struct {
-		Synonyms []string `json:"synonyms"`
+	res := col.FindOne(ctx, filter, options.FindOne().SetProjection(onlySynonyms))
+	if res.Err() != nil {
+		return nil, res.Err()
 	}
 
-	// esto solo funciona si tiene 1 doc de esa palabra
-	for cur.Next(ctx) {
-		err := cur.Decode(&synonyms)
-		if err != nil {
-			log.Fatal(err)
-		}
+	var result struct {
+		Synonyms []string `bson:"synonyms"`
 	}
+	res.Decode(&result)
 
-	return synonyms.Synonyms, nil
+	return result.Synonyms, nil
 }
